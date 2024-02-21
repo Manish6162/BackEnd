@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace BackEnd.Resorces {
+namespace BackEnd.Resources {
     using System;
     
     

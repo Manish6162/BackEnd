@@ -1,26 +1,27 @@
-﻿using Newtonsoft.Json;
-using System.ComponentModel.DataAnnotations;
+﻿
+using Newtonsoft.Json;
 
-namespace Backend.Entities
+
+namespace BackEnd.Entities
 {
+
     public class User
     {
-        [Key]
-        [JsonProperty("userId")]
-        public int UserId { get; set; }
+        [JsonProperty(PropertyName = "id")]
+        public string UserId { get; set; } = Guid.NewGuid().ToString();
 
-        [JsonProperty("userName")]
-        public string UserName { get; set; }
+        [JsonProperty(PropertyName = "username")]
+        public string Username { get; set; }
 
-        //[JsonProperty("used")]
-        //public bool Used { get; set; }
+        [JsonProperty(PropertyName = "currentTime")]
+        public DateTime CurrentTime { get; set; } = DateTime.UtcNow;
 
-        [JsonProperty("bio")]
+        [JsonProperty(PropertyName = "birthday")]
+        public DateTime Birthday { get; set; }
+
+        [JsonProperty(PropertyName = "bio")]
         public string Bio { get; set; }
-
-        [JsonProperty("profilePicUrl")]
-        public string ProfilePicUrl { get; set; }
     }
 
-
 }
+

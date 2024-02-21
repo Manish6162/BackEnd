@@ -1,68 +1,97 @@
-﻿using Backend.Entities;
-using BackEnd.Entities;
+﻿using BackEnd.Entities;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
+using Microsoft.Azure.Cosmos;
+using System.Collections;
+using System.Reflection;
+using System.Resources;
+
 
 namespace BackEnd.Controllers
 {
+    [Route("api/[controller]")]
     [ApiController]
-    [Route("[controller]")]
     public class UsersController : ControllerBase
     {
-        private readonly AppDbContext _context;
 
-        // Define arrays for adjectives and nouns
-        private readonly string[] Adjectives = { "Adventurous", "Bright", "Charming", /* Add more adjectives as needed */ };
-        private readonly string[] Nouns = { "Aurora", "Beach", "Bear", /* Add more nouns as needed */ };
+        private readonly Container _usersContainer;
 
-        public UsersController(AppDbContext context)
+        public UsersController(CosmosDbContext cosmosDbContext)
         {
-            _context = context;
+            _usersContainer = cosmosDbContext.UsersContainer;
         }
 
-        [HttpGet("generate-username")]
-        public async Task<IActionResult> GenerateUsername()
+
+
+        [HttpGet("username")]
+        public async Task<IActionResult> GetUser()
         {
-            string username = GenerateRandomUsername();
-            _context.Users.Add(new User { UserName = username });
+            try
+            {
+                string username = GenerateRandomUsername();
 
-            try { await _context.SaveChangesAsync(); }
-            catch(Exception ex) {};
+              
+                    BackEnd.Entities.User
+                      newUser = new BackEnd.Entities.User
+                      {
+                        Username = username,
+                         
+                        };
 
-            
+                    await _usersContainer.CreateItemAsync(newUser); //, new PartitionKey(newUser.UserId)
 
-            return Ok(new { Username = username });
+                return Ok(new { Message = "User added successfully." });
+                //else
+                //{
+                //    // User already exists in Cosmos DB
+                //    return BadRequest(new { Message = "User already exists." });
+                //}
+            }
+            catch (Exception ex)
+            {
+                // Log the exception for debugging purposes
+                Console.WriteLine($"Exception: {ex}");
+
+                return StatusCode(500, new { Message = "Internal server error." });
+            }
         }
 
         private string GenerateRandomUsername()
         {
-            string adjective = GetRandomArrayValue(Adjectives);
-            string noun = GetRandomArrayValue(Nouns);
+            string adjective = GetRandomResource("Strings_Adjectives");
+            string noun = GetRandomResource("Strings_Nouns");
             string number = GenerateRandomNumber();
 
             return $"{adjective}_{noun}_{number}";
         }
 
-        private string GetRandomArrayValue(string[] array)
+        private string GetRandomResource(string resourceName)
         {
-            if (array == null || array.Length == 0)
+            try
             {
-                // Handle the case where the array is empty
-                return "DefaultWord";
+                string resourceKey = $"BackEnd.Resources.{resourceName}.resources";
+                var assembly = Assembly.GetExecutingAssembly();
+                using (var stream = assembly.GetManifestResourceStream(resourceKey))
+                {
+                    using (var reader = new ResourceReader(stream))
+                    {
+                        var resources = reader.OfType<DictionaryEntry>().ToList();
+                        int randomIndex = new Random().Next(0, resources.Count);
+
+                        return resources[randomIndex].Value.ToString();
+                    }
+                }
             }
-
-            Random random = new Random();
-            int randomIndex = random.Next(0, array.Length);
-
-            return array[randomIndex];
+            catch (Exception)
+            {
+                return string.Empty;
+            }
         }
 
         private string GenerateRandomNumber()
         {
-            // Generate a random 3-digit number
-            Random random = new Random();
-            return random.Next(100, 1000).ToString();
+            return new Random().Next(100, 1000).ToString();
         }
+
+
     }
 }
